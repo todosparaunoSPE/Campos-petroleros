@@ -189,21 +189,12 @@ if shortest_paths:
 
 # Métricas de rendimiento
 if len(start_wells) > 0:
-    total_distance = df_path['Distancia al Punto de Distribución (km)'].sum()
+    total_distance = sum(total_distances)
     st.subheader('Métricas de Rendimiento de la Ruta Más Corta')
     st.write(f'Distancia Total de la Ruta Más Corta: {total_distance:.2f} km')
     st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
 
-# Créditos y referencia
-st.sidebar.markdown('---')
-st.sidebar.subheader('Créditos y Referencia')
-st.sidebar.write("""
-- Desarrollado por: Javier Horacio Pérez Ricárdez
-- Contacto: +52 55 7425 5593
-""")
-
-# Información adicional
-st.sidebar.markdown('---')
+# Información adicional en la barra lateral
 st.sidebar.subheader('Información Adicional')
 st.sidebar.write("""
 Esta aplicación es un prototipo para visualizar campos petroleros y simular datos sísmicos. 
