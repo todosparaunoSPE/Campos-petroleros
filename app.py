@@ -47,14 +47,6 @@ def calculate_shortest_path(start, end):
     
     return shortest_path, shortest_distance
 
-# Función para simular datos sísmicos
-def simulate_seismic_data(num_wells, amplitude_factor, depth_factor):
-    depths = np.random.uniform(1000, 5000, num_wells)
-    amplitude = amplitude_factor * np.random.randn(num_wells)
-    depth_factor = np.linspace(0.5, 1.5, num_wells)
-    seismic_data = amplitude * depth_factor
-    return depths, seismic_data
-
 # Configuración de la aplicación con Streamlit
 st.title('Aplicación de Campos Petroleros y Datos Sísmicos')
 
@@ -69,6 +61,13 @@ amplitude_factor = st.sidebar.slider('Factor de Amplitud', 0.1, 2.0, 1.0)
 depth_factor = st.sidebar.slider('Factor de Profundidad', 0.5, 1.5, 1.0)
 
 # Simular datos sísmicos
+def simulate_seismic_data(num_wells, amplitude_factor, depth_factor):
+    depths = np.random.uniform(1000, 5000, num_wells)
+    amplitude = amplitude_factor * np.random.randn(num_wells)
+    depth_factor = np.linspace(0.5, 1.5, num_wells)
+    seismic_data = amplitude * depth_factor
+    return depths, seismic_data
+
 depths, seismic_data = simulate_seismic_data(num_wells, amplitude_factor, depth_factor)
 df_seismic = pd.DataFrame({
     'Pozo': [f'Pozo {i+1}' for i in range(num_wells)],
@@ -162,45 +161,21 @@ for start_well in start_wells:
     shortest_paths.append(shortest_path)
     total_distances.append(shortest_distance)
 
-# Crear DataFrame para la ruta más corta y detalles
-path_details = []
-
-# Agregar detalles de los pozos de inicio seleccionados
-for i, start_well in enumerate(start_wells):
-    if start_well != 'Punto de Distribución':
-        details_start = df[df['Pozo'] == start_well].iloc[0]
-        distance_to_distribution = geodesic((details_start['Latitud'], details_start['Longitud']), (distribution_point['Latitud'], distribution_point['Longitud'])).kilometers
-        path_details.append({
-            'Nombre': start_well,
-            'Latitud': details_start['Latitud'],
-            'Longitud': details_start['Longitud'],
-            'Distancia al Punto de Distribución (km)': distance_to_distribution,
-            'Costo de Transporte ($USD)': distance_to_distribution * 10  # Ejemplo de costo de transporte
-        })
-
-# Agregar punto de distribución
-path_details.append({
-    'Nombre': 'Punto de Distribución',
-    'Latitud': distribution_point['Latitud'],
-    'Longitud': distribution_point['Longitud'],
-    'Distancia al Punto de Distribución (km)': 0.0,
-    'Costo de Transporte ($USD)': 0.0
-})
-
-# Convertir a DataFrame
-df_path = pd.DataFrame(path_details)
-
-# Mostrar DataFrame con la ruta más corta y detalles
-st.subheader('Ruta Más Corta de Transporte y Detalles del Pozo y Punto de Distribución')
-st.write(df_path)
-
-# Mostrar métricas de rendimiento si se selecciona al menos un pozo de inicio
-if len(start_wells) > 0:
-    # Mostrar gráfico de la ruta más corta en el mapa interactivo
+# Mostrar la ruta más corta en el mapa interactivo
+if shortest_paths:
     fig_shortest_path = go.Figure(fig)
     for path in shortest_paths:
-        path_coords = [(df[df['Pozo'] == node]['Longitud'].values[0], df[df['Pozo'] == node]['Latitud'].values[0]) for node in path]
+        path_coords = []
+        for node in path:
+            if node in df['Pozo'].values:
+                coords = (df.loc[df['Pozo'] == node, 'Longitud'].values[0], df.loc[df['Pozo'] == node, 'Latitud'].values[0])
+                path_coords.append(coords)
+            else:
+                st.warning(f'El pozo {node} no se encuentra en el DataFrame.')
+                # Puedes decidir qué hacer en caso de que el nodo no exista en df
+        
         path_coords.append((distribution_point['Longitud'], distribution_point['Latitud']))
+        
         fig_shortest_path.add_trace(go.Scattergeo(
             lon = [coord[0] for coord in path_coords],
             lat = [coord[1] for coord in path_coords],
@@ -208,5 +183,29 @@ if len(start_wells) > 0:
             line = dict(width = 2, color = 'blue'),
             name = f'Ruta Más Corta: {" -> ".join(path)}'
         ))
+
     fig_shortest_path.update_layout(title = 'Ruta Más Corta de Transporte en el Mapa Interactivo', showlegend=True)
     st.plotly_chart(fig_shortest_path, use_container_width=True)
+
+# Métricas de rendimiento
+if len(start_wells) > 0:
+    total_distance = df_path['Distancia al Punto de Distribución (km)'].sum()
+    st.subheader('Métricas de Rendimiento de la Ruta Más Corta')
+    st.write(f'Distancia Total de la Ruta Más Corta: {total_distance:.2f} km')
+    st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
+
+# Créditos y referencia
+st.sidebar.markdown('---')
+st.sidebar.subheader('Créditos y Referencia')
+st.sidebar.write("""
+- Desarrollado por: Javier Horacio Pérez Ricárdez
+- Contacto: +52 55 7425 5593
+""")
+
+# Información adicional
+st.sidebar.markdown('---')
+st.sidebar.subheader('Información Adicional')
+st.sidebar.write("""
+Esta aplicación es un prototipo para visualizar campos petroleros y simular datos sísmicos. 
+Se utiliza NetworkX para calcular rutas de transporte y Plotly para gráficos interactivos.
+""")
