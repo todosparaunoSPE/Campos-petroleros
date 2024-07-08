@@ -203,18 +203,9 @@ if shortest_paths:
 else:
     st.write('Selecciona al menos un pozo de inicio para calcular la ruta más corta.')
 
-# Créditos y referencia
-st.sidebar.markdown('---')
-st.sidebar.subheader('Créditos y Referencia')
-st.sidebar.write("""
-- Desarrollado por: Javier Horacio Pérez Ricárdez
-- Contacto: +52 55 7425 5593
-- [LinkedIn](https://www.linkedin.com/in/javier-horacio-p%C3%A9rez-ric%C3%A1rdez-8670a745/)
-""")
-
 # Nota final
 st.sidebar.markdown('---')
 st.sidebar.subheader('Nota')
 st.sidebar.write("""
-Esta aplicación es un ejemplo educativo para visualizar campos petroleros, simular datos sísmicos, calcular rutas de transporte, y mostrar métricas de rendimiento utilizando Streamlit y Plotly.
+Esta aplicación es un ejemplo educativo para visualizar campos petroleros, simular datos sísmicos, calcular rutas de transporte y mostrar métricas de rendimiento utilizando Streamlit y Plotly.
 """)
