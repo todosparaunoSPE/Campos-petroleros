@@ -194,43 +194,26 @@ df_path = pd.DataFrame(path_details)
 st.subheader('Ruta Más Corta de Transporte y Detalles del Pozo y Punto de Distribución')
 st.write(df_path)
 
-# Métricas de rendimiento
-if len(start_wells) > 0:
-    # Calcular métricas de rendimiento
-    total_distance = df_path['Distancia al Punto de Distribución (km)'].sum()
-    average_distance = df_path['Distancia al Punto de Distribución (km)'].mean()
-    number_of_wells = df_path.shape[0] - 1  # Restar el punto de distribución
-    total_transport_time = total_distance / 60  # Suponiendo velocidad promedio de 60 km/h
-    total_transport_cost = df_path['Costo de Transporte ($USD)'].sum()
-    average_transport_cost = df_path[df_path['Nombre'] != 'Punto de Distribución']['Costo de Transporte ($USD)'].mean()
+# Crear gráfico de la ruta más corta en el mapa interactivo
+for path in shortest_paths:
+    path_coordinates = [(df[df['Pozo'] == node]['Longitud'].values[0], df[df['Pozo'] == node]['Latitud'].values[0]) for node in path]
+    fig.add_trace(go.Scattergeo(
+        lon = [c[0] for c in path_coordinates],
+        lat = [c[1] for c in path_coordinates],
+        mode = 'lines',
+        line = dict(width = 2, color = 'blue'),
+        opacity = 0.8,
+        hoverinfo = 'text',
+        text = path
+    ))
 
-    # Mostrar métricas de rendimiento
-    st.subheader('Métricas de Rendimiento del Transporte')
-    st.write(f'Número Total de Pozos: {number_of_wells}')
-    st.write(f'Distancia Total Recorrida: {total_distance:.2f} km')
-    st.write(f'Distancia Promedio por Pozo: {average_distance:.2f} km')
-    st.write(f'Tiempo Total de Transporte Estimado: {total_transport_time:.2f} horas')
-    st.write(f'Costo Total de Transporte: ${total_transport_cost:.2f}')
-    st.write(f'Costo Promedio de Transporte por Pozo: ${average_transport_cost:.2f}')
+# Mostrar el mapa interactivo con la ruta más corta
+st.plotly_chart(fig, use_container_width=True)
 
-# Créditos y referencia
-st.sidebar.markdown('---')
-st.sidebar.subheader('Créditos y Referencia')
-st.sidebar.write("""
-- Desarrollado por: Javier Horacio Pérez Ricárdez
-- Contacto: +52 55 7425 5593
-""")
-
-# Información adicional
-st.sidebar.markdown('---')
-st.sidebar.subheader('Información Adicional')
-st.sidebar.write('Para más detalles sobre la aplicación, contacta al desarrollador.')
-
-# Aviso de derechos de autor
-st.sidebar.markdown("""
-    ---
-    © 2024. Todos los derechos reservados.
-    Creado por jahoperi
-""")
+# Métricas de rendimiento de la ruta más corta
+st.subheader('Métricas de Rendimiento de la Ruta Más Corta')
+st.write(f'Distancia Total de la Ruta Más Corta: {sum(total_distances):.2f} km')
+st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
 
 # Fin de la aplicación
+st.sidebar.write('Desarrollado por Javier Horacio Pérez Ricárdez')
