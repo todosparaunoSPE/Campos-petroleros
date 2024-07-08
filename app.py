@@ -226,4 +226,11 @@ st.sidebar.markdown('---')
 st.sidebar.subheader('Información Adicional')
 st.sidebar.write('Para más detalles sobre la aplicación, contacta al desarrollador.')
 
+# Aviso de derechos de autor
+st.sidebar.markdown("""
+    ---
+    © 2024. Todos los derechos reservados.
+    Creado por jahoperi
+""")
+
 # Fin de la aplicación
