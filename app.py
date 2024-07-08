@@ -194,26 +194,27 @@ df_path = pd.DataFrame(path_details)
 st.subheader('Ruta Más Corta de Transporte y Detalles del Pozo y Punto de Distribución')
 st.write(df_path)
 
-# Crear gráfico de la ruta más corta en el mapa interactivo
-for path in shortest_paths:
-    path_coordinates = [(df[df['Pozo'] == node]['Longitud'].values[0], df[df['Pozo'] == node]['Latitud'].values[0]) for node in path]
-    fig.add_trace(go.Scattergeo(
-        lon = [c[0] for c in path_coordinates],
-        lat = [c[1] for c in path_coordinates],
-        mode = 'lines',
-        line = dict(width = 2, color = 'blue'),
-        opacity = 0.8,
-        hoverinfo = 'text',
-        text = path
-    ))
-
-# Mostrar el mapa interactivo con la ruta más corta
-st.plotly_chart(fig, use_container_width=True)
-
 # Métricas de rendimiento de la ruta más corta
 st.subheader('Métricas de Rendimiento de la Ruta Más Corta')
-st.write(f'Distancia Total de la Ruta Más Corta: {sum(total_distances):.2f} km')
-st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
 
-# Fin de la aplicación
-st.sidebar.write('Desarrollado por Javier Horacio Pérez Ricárdez')
+if shortest_paths:
+    st.write(f'Distancia Total de la Ruta Más Corta: {sum(total_distances):.2f} km')
+    st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
+else:
+    st.write('Selecciona al menos un pozo de inicio para calcular la ruta más corta.')
+
+# Créditos y referencia
+st.sidebar.markdown('---')
+st.sidebar.subheader('Créditos y Referencia')
+st.sidebar.write("""
+- Desarrollado por: Javier Horacio Pérez Ricárdez
+- Contacto: +52 55 7425 5593
+- [LinkedIn](https://www.linkedin.com/in/javier-horacio-p%C3%A9rez-ric%C3%A1rdez-8670a745/)
+""")
+
+# Nota final
+st.sidebar.markdown('---')
+st.sidebar.subheader('Nota')
+st.sidebar.write("""
+Esta aplicación es un ejemplo educativo para visualizar campos petroleros, simular datos sísmicos, calcular rutas de transporte, y mostrar métricas de rendimiento utilizando Streamlit y Plotly.
+""")
