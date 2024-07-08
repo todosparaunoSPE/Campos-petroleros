@@ -191,7 +191,7 @@ path_details.append({
 df_path = pd.DataFrame(path_details)
 
 # Mostrar DataFrame con la ruta más corta y detalles
-st.subheader('Ruta Más Corta de Transporte y Detalles del Well y Punto de Distribución')
+st.subheader('Ruta Más Corta de Transporte y Detalles del Pozo y Punto de Distribución')
 st.write(df_path)
 
 # Métricas de rendimiento
