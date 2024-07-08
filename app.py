@@ -194,18 +194,19 @@ df_path = pd.DataFrame(path_details)
 st.subheader('Ruta Más Corta de Transporte y Detalles del Pozo y Punto de Distribución')
 st.write(df_path)
 
-# Métricas de rendimiento de la ruta más corta
-st.subheader('Métricas de Rendimiento de la Ruta Más Corta')
-
-if shortest_paths:
-    st.write(f'Distancia Total de la Ruta Más Corta: {sum(total_distances):.2f} km')
-    st.write(f'Número de Pozos en la Ruta Más Corta: {len(shortest_paths[0]) - 1}')
-else:
-    st.write('Selecciona al menos un pozo de inicio para calcular la ruta más corta.')
-
-# Nota final
-st.sidebar.markdown('---')
-st.sidebar.subheader('Nota')
-st.sidebar.write("""
-Esta aplicación es un ejemplo educativo para visualizar campos petroleros, simular datos sísmicos, calcular rutas de transporte y mostrar métricas de rendimiento utilizando Streamlit y Plotly.
-""")
+# Mostrar métricas de rendimiento si se selecciona al menos un pozo de inicio
+if len(start_wells) > 0:
+    # Mostrar gráfico de la ruta más corta en el mapa interactivo
+    fig_shortest_path = go.Figure(fig)
+    for path in shortest_paths:
+        path_coords = [(df[df['Pozo'] == node]['Longitud'].values[0], df[df['Pozo'] == node]['Latitud'].values[0]) for node in path]
+        path_coords.append((distribution_point['Longitud'], distribution_point['Latitud']))
+        fig_shortest_path.add_trace(go.Scattergeo(
+            lon = [coord[0] for coord in path_coords],
+            lat = [coord[1] for coord in path_coords],
+            mode = 'lines',
+            line = dict(width = 2, color = 'blue'),
+            name = f'Ruta Más Corta: {" -> ".join(path)}'
+        ))
+    fig_shortest_path.update_layout(title = 'Ruta Más Corta de Transporte en el Mapa Interactivo', showlegend=True)
+    st.plotly_chart(fig_shortest_path, use_container_width=True)
