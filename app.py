@@ -247,3 +247,10 @@ for name, model in models.items():
 st.subheader('Resultados de la Comparación de Modelos de Regresión')
 results_df = pd.DataFrame(list(model_results.items()), columns=['Modelo', 'Score'])
 st.dataframe(results_df)
+
+# Aviso de derechos de autor
+st.sidebar.markdown("""
+    ---
+    © 2024. Todos los derechos reservados.
+    Creado por jahoperi.
+""")
