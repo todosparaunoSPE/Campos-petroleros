@@ -11,7 +11,10 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
-from geopy.distance import geodesic
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
 
 # Datos de ejemplo de campos petroleros y punto de distribución
 np.random.seed(0)
@@ -21,9 +24,22 @@ data = {
     'Latitud': np.random.uniform(18, 22, num_wells),
     'Longitud': np.random.uniform(-100, -95, num_wells),
     'Profundidad': np.random.uniform(1000, 5000, num_wells),
-    'Producción': np.random.uniform(100, 10000, num_wells)
+    'Producción': np.random.uniform(100, 10000, num_wells),
+    'Presión': np.random.uniform(1000, 5000, num_wells)
 }
 df = pd.DataFrame(data)
+
+# Generar historial de producción para cada pozo
+historical_data = []
+for i in range(num_wells):
+    pozo = f'Pozo {i+1}'
+    for j in range(10):
+        historical_data.append({
+            'Pozo': pozo,
+            'Mes': j,
+            'Producción': data['Producción'][i] * (1 - 0.1 * np.random.rand())
+        })
+historical_df = pd.DataFrame(historical_data)
 
 # Coordenadas del punto de distribución
 distribution_point = {'Latitud': 20.5, 'Longitud': -98.0}
@@ -57,10 +73,38 @@ def simulate_seismic_data(num_wells, amplitude_factor, depth_factor):
 
 # Configuración de la aplicación con Streamlit
 st.title('Aplicación de Campos Petroleros y Datos Sísmicos')
+st.markdown("""
+<style>
+    .main .block-container {
+        max-width: 80%;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Sidebar con sección de ayuda
+st.sidebar.header('Configuración')
 st.sidebar.subheader('Ayuda')
-st.sidebar.write('Esta aplicación permite visualizar campos petroleros, simular datos sísmicos, calcular rutas de transporte y mostrar métricas de rendimiento.')
+st.sidebar.write("""
+Esta aplicación permite realizar las siguientes funciones:
+
+1. **Visualización de Campos Petroleros**:
+   - Muestra un mapa interactivo con la ubicación de los pozos petroleros y el punto de distribución.
+
+2. **Simulación de Datos Sísmicos**:
+   - Genera datos sísmicos simulados basados en el número de pozos, el factor de amplitud y el factor de profundidad ajustados mediante sliders en la barra lateral.
+   - Visualiza los datos sísmicos simulados en un gráfico y en un DataFrame.
+
+3. **Historial de Producción**:
+   - Permite seleccionar uno o varios pozos y muestra el historial de producción en un gráfico y en un DataFrame.
+
+4. **Cálculo de Ruta Más Corta**:
+   - Calcula y visualiza la ruta más corta desde un pozo inicial hasta un pozo de destino o el punto de distribución utilizando el algoritmo de Dijkstra.
+
+5. **Comparación de Modelos de Regresión**:
+   - Compara el rendimiento de varios modelos de regresión (Linear Regression, Decision Tree, Random Forest, Ridge Regression) para predecir la producción futura de los pozos petroleros.
+""")
 
 # Sliders para ajustar los parámetros de simulación de datos sísmicos
 st.sidebar.subheader('Configuración de Datos Sísmicos')
@@ -77,16 +121,17 @@ df_seismic = pd.DataFrame({
 })
 
 # Mostrar gráfico de datos sísmicos simulados
+st.header('Datos Sísmicos Simulados')
 st.subheader('Gráfico de Datos Sísmicos Simulados vs Profundidad')
 fig_seismic = px.scatter(df_seismic, x='Datos Sísmicos Simulados', y='Profundidad', color='Pozo', hover_name='Pozo')
 st.plotly_chart(fig_seismic, use_container_width=True)
 
 # Mostrar DataFrame de datos sísmicos simulados
 st.subheader('DataFrame de Datos Sísmicos Simulados')
-st.write(df_seismic)
+st.dataframe(df_seismic)
 
 # Mostrar mapa interactivo con campos petroleros y punto de distribución
-st.subheader('Mapa Interactivo de Campos Petroleros y Punto de Distribución')
+st.header('Mapa Interactivo de Campos Petroleros y Punto de Distribución')
 fig = go.Figure()
 
 # Agregar puntos de campos petroleros al mapa
@@ -149,81 +194,56 @@ fig.update_layout(
 # Mostrar el mapa interactivo
 st.plotly_chart(fig, use_container_width=True)
 
-# Selección de inicio y fin para calcular la ruta más corta
-start_wells = st.multiselect('Selecciona los Pozos de Inicio para Calcular Ruta', df['Pozo'])
-end_well = 'Punto de Distribución'  # Punto de distribución fijo para ejemplo
+# Selección de uno o varios pozos para calcular y mostrar el historial de producción
+st.sidebar.subheader('Historial de Producción')
+selected_wells = st.sidebar.multiselect('Selecciona el Pozo o los Pozos', df['Pozo'])
 
-# Calcular ruta más corta y mostrar resultados
-shortest_paths = []
-total_distances = []
+# Filtrar el DataFrame de historial por los pozos seleccionados
+filtered_historical_df = historical_df[historical_df['Pozo'].isin(selected_wells)]
 
-for start_well in start_wells:
+# Gráfico de historial de producción por pozo
+st.subheader('Historial de Producción por Pozo')
+fig_historical = px.line(filtered_historical_df, x='Mes', y='Producción', color='Pozo', title='Historial de Producción por Pozo')
+st.plotly_chart(fig_historical, use_container_width=True)
+
+# Mostrar DataFrame de historial de producción filtrado
+st.subheader('DataFrame de Historial de Producción Filtrado')
+st.dataframe(filtered_historical_df)
+
+# Selección de pozo inicial y final para calcular la ruta más corta
+st.sidebar.subheader('Cálculo de Ruta Más Corta')
+start_well = st.sidebar.selectbox('Selecciona el Pozo de Inicio', df['Pozo'])
+end_well = st.sidebar.selectbox('Selecciona el Pozo de Destino o Punto de Distribución', df['Pozo'].tolist() + ['Punto de Distribución'])
+
+# Calcular y mostrar la ruta más corta
+if st.sidebar.button('Calcular Ruta Más Corta'):
     shortest_path, shortest_distance = calculate_shortest_path(start_well, end_well)
-    shortest_paths.append(shortest_path)
-    total_distances.append(shortest_distance)
+    st.subheader('Ruta Más Corta Calculada')
+    st.write(f'Ruta Más Corta desde {start_well} hasta {end_well}:')
+    st.write(' -> '.join(shortest_path))
+    st.write(f'Distancia Total: {shortest_distance:.2f} unidades')
 
-# Crear DataFrame para la ruta más corta y detalles
-path_details = []
+# Comparación de modelos de regresión para predecir la producción futura
+st.header('Comparación de Modelos de Regresión')
+X = df[['Latitud', 'Longitud', 'Profundidad', 'Presión']]
+y = df['Producción']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Agregar detalles de los pozos de inicio seleccionados
-for i, start_well in enumerate(start_wells):
-    if start_well != 'Punto de Distribución':
-        details_start = df[df['Pozo'] == start_well].iloc[0]
-        distance_to_distribution = geodesic((details_start['Latitud'], details_start['Longitud']), (distribution_point['Latitud'], distribution_point['Longitud'])).kilometers
-        path_details.append({
-            'Nombre': start_well,
-            'Latitud': details_start['Latitud'],
-            'Longitud': details_start['Longitud'],
-            'Distancia al Punto de Distribución (km)': distance_to_distribution,
-            'Costo de Transporte ($USD)': distance_to_distribution * 10  # Ejemplo de costo de transporte
-        })
+# Entrenar y evaluar modelos de regresión
+models = {
+    'Linear Regression': LinearRegression(),
+    'Decision Tree': DecisionTreeRegressor(),
+    'Random Forest': RandomForestRegressor(),
+    'Ridge Regression': Ridge()
+}
+model_results = {}
 
-# Agregar punto de distribución
-path_details.append({
-    'Nombre': 'Punto de Distribución',
-    'Latitud': distribution_point['Latitud'],
-    'Longitud': distribution_point['Longitud'],
-    'Distancia al Punto de Distribución (km)': 0.0,
-    'Costo de Transporte ($USD)': 0.0
-})
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    score = model.score(X_test, y_test)
+    model_results[name] = score
 
-# Convertir a DataFrame
-df_path = pd.DataFrame(path_details)
-
-# Mostrar DataFrame con la ruta más corta y detalles
-st.subheader('Ruta Más Corta de Transporte y Detalles del Well y Punto de Distribución')
-st.write(df_path)
-
-# Métricas de rendimiento
-if len(start_wells) > 0:
-    # Calcular métricas de rendimiento
-    total_distance = df_path['Distancia al Punto de Distribución (km)'].sum()
-    average_distance = df_path['Distancia al Punto de Distribución (km)'].mean()
-    number_of_wells = df_path.shape[0] - 1  # Restar el punto de distribución
-    total_transport_time = total_distance / 60  # Suponiendo velocidad promedio de 60 km/h
-    total_transport_cost = df_path['Costo de Transporte ($USD)'].sum()
-    average_transport_cost = df_path[df_path['Nombre'] != 'Punto de Distribución']['Costo de Transporte ($USD)'].mean()
-
-    # Mostrar métricas de rendimiento
-    st.subheader('Métricas de Rendimiento del Transporte')
-    st.write(f'Número Total de Pozos: {number_of_wells}')
-    st.write(f'Distancia Total Recorrida: {total_distance:.2f} km')
-    st.write(f'Distancia Promedio por Pozo: {average_distance:.2f} km')
-    st.write(f'Tiempo Total de Transporte Estimado: {total_transport_time:.2f} horas')
-    st.write(f'Costo Total de Transporte: ${total_transport_cost:.2f} USD')
-    st.write(f'Costo Promedio de Transporte por Pozo: ${average_transport_cost:.2f} USD')
-
-# Créditos y referencia
-st.sidebar.markdown('---')
-st.sidebar.subheader('Créditos y Referencia')
-st.sidebar.write("""
-- Desarrollado por: Javier Horacio Pérez Ricárdez
-- Contacto: +52 55 7425 5593
-""")
-
-# Información adicional
-st.sidebar.markdown('---')
-st.sidebar.subheader('Información Adicional')
-st.sidebar.write('Para más detalles sobre la aplicación, contacta al desarrollador.')
-
-# Fin de la aplicación
+# Mostrar los resultados de la comparación de modelos
+st.subheader('Resultados de la Comparación de Modelos de Regresión')
+results_df = pd.DataFrame(list(model_results.items()), columns=['Modelo', 'Score'])
+st.dataframe(results_df)
